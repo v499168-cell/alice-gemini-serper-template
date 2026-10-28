@@ -55,7 +55,7 @@ test("launch request returns a valid Alice greeting without external API keys", 
     json(value) { payload = value; return value; },
     setHeader() {}
   };
-  await handler({ method: "POST", body: { request: { command: "" }, state: { session: { history: [] } } } }, res);
+  await handler({ method: "POST", body: { version: "1.0", request: { command: "" }, state: { session: { history: [] } } } }, res);
   assert.equal(statusCode, 200);
   assert.equal(payload.version, "1.0");
   assert.match(payload.response.text, /Привет/);

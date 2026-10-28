@@ -3,6 +3,9 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 10
+    },
+    "api/diagnostics.js": {
+      "maxDuration": 20
     }
   }
 }
