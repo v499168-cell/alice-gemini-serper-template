@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createConversation, accessAllowed, validTicket } from '../lib/conversation.js';
+import { createConversation, accessAllowed, validTicket, waitForReady } from '../lib/conversation.js';
 const secret = 'test-only-'.repeat(8);
 const request = (command, state = {}, session = 'session-one') => ({ version: '1.0', request: { command }, session: { session_id: session }, state: { session: state } });
 test('slow provider starts once; polling retrieves result and later question keeps server history', async () => {
@@ -57,4 +57,56 @@ test('webhook requires separate secret; rejects absent, wrong and oversized toke
   assert(accessAllowed(new Request('https://example.com/api', { headers: { 'x-alice-token': secret } }), secret));
   assert(accessAllowed(new Request('https://example.com/api?token=' + secret), secret));
   assert(!accessAllowed(new Request('https://example.com/api'), ''));
+});
+
+test('a fast durable answer is spoken in the first turn and its history survives', async () => {
+  let starts = 0;
+  const history = [{ role: 'user', text: 'Я Николай' }, { role: 'model', text: 'Привет, Николай!' }];
+  const completed = { status: 'completed', result: { text: 'Привет, Николай!', history } };
+  const args = [];
+  const handle = createConversation({ secret,
+    startTask: async (...a) => { starts++; args.push(a); return 'fast-run'; },
+    readTask: async () => completed,
+    waitTask: async () => completed
+  });
+  const first = await handle(request('Я Николай'));
+  assert.equal(first.body.response.text, 'Привет, Николай!');
+  assert.equal(first.body.session_state.delivered, true);
+  assert(validTicket(first.body.session_state, 'session-one', secret));
+  await handle(request('Как меня зовут?', first.body.session_state));
+  assert.equal(starts, 2);
+  assert.deepEqual(args[1], ['Как меня зовут?', history]);
+});
+
+test('a slow fast-path read keeps the original task for later without duplicate generation', async () => {
+  for (const throws of [false, true]) {
+    let starts = 0;
+    const handle = createConversation({ secret,
+      startTask: async () => { starts++; return 'slow-run'; },
+      readTask: async () => ({ status: 'completed', result: { text: 'Готовый ответ', history: [] } }),
+      waitTask: async () => { if (throws) throw Error('temporary read failure'); return null; }
+    });
+    const first = await handle(request('Сложный вопрос'));
+    assert.equal(first.body.session_state.runId, 'slow-run');
+    const next = await handle(request('Дальше', first.body.session_state));
+    assert.equal(next.body.response.text, 'Готовый ответ');
+    assert.equal(starts, 1);
+  }
+});
+
+test('a hung status read cannot hold the response beyond the fast-path budget', async () => {
+  const began = Date.now();
+  const result = await waitForReady(async () => new Promise(() => {}), 'run', began + 30, 5);
+  assert.equal(result, null);
+  assert(Date.now() - began < 300);
+});
+
+test('fast path observes completion after pending and running states', async () => {
+  let reads = 0;
+  const result = await waitForReady(async () => {
+    reads++;
+    return reads === 1 ? { status: 'pending' } : reads === 2 ? { status: 'running' } : { status: 'completed', result: { text: 'Ответ' } };
+  }, 'run', Date.now() + 300, 5);
+  assert.equal(result.result.text, 'Ответ');
+  assert.equal(reads, 3);
 });

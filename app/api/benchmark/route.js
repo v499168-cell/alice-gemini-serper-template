@@ -8,7 +8,9 @@ export async function POST(request) {
   const variants = {
     current: { model: 'gemini-3.5-flash-lite', fast: false },
     minimal: { model: 'gemini-3.5-flash-lite', fast: true },
-    older: { model: 'gemini-3.1-flash-lite', fast: true }
+    older: { model: 'gemini-3.1-flash-lite', fast: true },
+    gemma26: { model: 'gemma-4-26b-a4b-it', fast: true },
+    gemma31: { model: 'gemma-4-31b-it', fast: true }
   };
   const prompts = { arithmetic: 'Сколько будет два плюс два? Ответь одним коротким предложением.', explain: 'Почему осенью желтеют листья? Ответь двумя короткими предложениями.' };
   if (!Object.hasOwn(variants, body?.variant) || !Object.hasOwn(prompts, body?.prompt)) return Response.json({ error: 'Invalid benchmark' }, { status: 400 });
