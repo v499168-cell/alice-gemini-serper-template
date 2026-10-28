@@ -1,6 +1,7 @@
 import { start, getRun } from 'workflow/api';
 import { answerQuestion } from '../../workflows/answer.js';
 import { createConversation, accessAllowed, waitForReady } from '../../lib/conversation.js';
+import { prepareFastAnswer } from '../../lib/direct-answer.js';
 
 export const maxDuration = 10;
 export const dynamic = 'force-dynamic';
@@ -20,13 +21,15 @@ export async function POST(request) {
     return { status, ...(status === 'completed' ? { result: await run.returnValue } : {}) };
   };
   const handle = createConversation({ secret,
-    startTask: async (text, history) => {
+    startTask: async (text, history, preparedAnswer) => {
       console.info('Alice workflow enqueue started');
-      const run = await start(answerQuestion, [text, history]);
+      const run = await start(answerQuestion, [text, history, preparedAnswer ?? null]);
       console.info('Alice workflow enqueue completed');
       return run.runId;
     },
     readTask,
+    // Avoid the background dispatch round trip for a fast model response.
+    prepareAnswer: (text, history) => prepareFastAnswer(text, history, began + 2800),
     // Reserve 1.1s of Alice's 4.5s limit for network delivery and scheduling.
     waitTask: id => waitForReady(readTask, id, began + 3400)
   });
