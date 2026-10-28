@@ -1,9 +1,8 @@
 import { start, getRun } from 'workflow/api';
-import { getWorld } from 'workflow/runtime';
 import { answerQuestion } from '../../workflows/answer.js';
 import { createConversation, accessAllowed } from '../../lib/conversation.js';
 
-export const maxDuration = 60;
+export const maxDuration = 10;
 export const dynamic = 'force-dynamic';
 export async function GET() {
   return Response.json({ ok: true, service: 'alice-gemini-serper', mode: 'durable-workflow', version: '2' }, { headers: { 'Cache-Control': 'no-store' } });
@@ -18,21 +17,7 @@ export async function POST(request) {
   const handle = createConversation({ secret,
     startTask: async (text, history) => {
       console.info('Alice workflow enqueue started');
-      const base = await getWorld();
-      console.info('Alice workflow world loaded');
-      const timed = (name, fn) => async (...args) => {
-        const began = Date.now();
-        console.info('Alice workflow operation started', name);
-        try { return await fn(...args); }
-        finally { console.info('Alice workflow operation finished', name, Date.now() - began); }
-      };
-      const world = { ...base,
-        getDeploymentId: timed('deployment', (...a) => base.getDeploymentId(...a)),
-        getEncryptionKeyForRun: timed('encryption', (...a) => base.getEncryptionKeyForRun(...a)),
-        events: { ...base.events, create: timed('create-event', (...a) => base.events.create(...a)) },
-        queue: timed('queue', (...a) => base.queue(...a))
-      };
-      const run = await start(answerQuestion, [text, history], { world });
+      const run = await start(answerQuestion, [text, history]);
       console.info('Alice workflow enqueue completed');
       return run.runId;
     },

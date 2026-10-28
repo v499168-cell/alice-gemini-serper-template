@@ -22,6 +22,9 @@ Vercel автоматически определяет Next.js из vercel.json.
 - ALICE_ACCESS_TOKEN: отдельная случайная строка не короче 32 символов; это не ключ Gemini/Serper.
 - GEMINI_MODEL: необязательно; по умолчанию gemini-3.5-flash-lite.
 - ALICE_SKILL_ID: необязательное дополнительное ограничение на навык.
+- WORKFLOW_NODE_HTTP=1: обязательный режим стандартного Node HTTP для совместимости с обновлённой undici.
+
+В настройках проекта должен быть включён OIDC. SDK получает токен из контекста запроса; отсутствие VERCEL_OIDC_TOKEN в process.env само по себе не означает ошибку.
 
 После изменения переменных нужно новое развёртывание.
 Webhook Яндекс Диалогов: https://YOUR-DOMAIN/api?token=YOUR-ALICE-ACCESS-TOKEN .
