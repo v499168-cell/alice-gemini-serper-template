@@ -15,7 +15,12 @@ export async function POST(request) {
   try { body = await request.json(); } catch { return Response.json({ error: 'Invalid JSON' }, { status: 400 }); }
   if (process.env.ALICE_SKILL_ID && body?.session?.skill_id !== process.env.ALICE_SKILL_ID) return Response.json({ error: 'Forbidden' }, { status: 403 });
   const handle = createConversation({ secret,
-    startTask: async (text, history) => (await start(answerQuestion, [text, history])).runId,
+    startTask: async (text, history) => {
+      console.info('Alice workflow enqueue started');
+      const run = await start(answerQuestion, [text, history]);
+      console.info('Alice workflow enqueue completed');
+      return run.runId;
+    },
     readTask: async id => {
       const run = getRun(id);
       const status = await run.status;
