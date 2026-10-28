@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { aliceResponse, fitAliceText, isSearchIntent, safeHistory } from "../api/index.js";
+import { aliceResponse, fitAliceText, isSearchIntent, safeHistory } from "../lib/alice.js";
 
 test("Alice response uses required response envelope", () => {
   const result = aliceResponse("Привет", false, [{ role: "user", text: "тест" }]);
@@ -32,7 +32,7 @@ test("history filters malformed messages and keeps last 8", () => {
 });
 
 test("GET health check returns an ok response", async () => {
-  const handler = (await import("../api/index.js")).default;
+  const handler = (await import("../lib/alice.js")).default;
   let statusCode = 200;
   let payload;
   const res = {
@@ -47,7 +47,7 @@ test("GET health check returns an ok response", async () => {
 });
 
 test("launch request returns a valid Alice greeting without external API keys", async () => {
-  const handler = (await import("../api/index.js")).default;
+  const handler = (await import("../lib/alice.js")).default;
   let statusCode = 200;
   let payload;
   const res = {
@@ -55,7 +55,7 @@ test("launch request returns a valid Alice greeting without external API keys", 
     json(value) { payload = value; return value; },
     setHeader() {}
   };
-  await handler({ method: "POST", body: { request: { command: "" }, state: { session: { history: [] } } } }, res);
+  await handler({ method: "POST", body: { version: "1.0", request: { command: "" }, state: { session: { history: [] } } } }, res);
   assert.equal(statusCode, 200);
   assert.equal(payload.version, "1.0");
   assert.match(payload.response.text, /Привет/);
