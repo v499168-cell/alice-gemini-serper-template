@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import handler, { safeHistory, fetchJson, askGemini } from "../api/index.js";
-import diagnostics from "../api/diagnostics.js";
+import handler, { safeHistory, fetchJson, askGemini } from "../lib/alice.js";
+import diagnostics from "../lib/diagnostics.js";
 
 function fixture(t) {
   const saved = { ...process.env };

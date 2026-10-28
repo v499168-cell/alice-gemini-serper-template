@@ -5,3 +5,8 @@
 node_modules
 .DS_Store
 npm-debug.log*
+
+.next
+.workflow-data
+app/.well-known/workflow
+/.swc
