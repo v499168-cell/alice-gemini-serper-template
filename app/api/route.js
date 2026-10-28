@@ -16,6 +16,10 @@ export async function POST(request) {
   if (process.env.ALICE_SKILL_ID && body?.session?.skill_id !== process.env.ALICE_SKILL_ID) return Response.json({ error: 'Forbidden' }, { status: 403 });
   const handle = createConversation({ secret,
     startTask: async (text, history) => {
+      if (process.env.VERCEL_DEPLOYMENT_ID && !process.env.VERCEL_OIDC_TOKEN) {
+        console.error('Alice workflow configuration: OIDC token unavailable');
+        throw new Error('WORKFLOW_NOT_CONFIGURED');
+      }
       console.info('Alice workflow enqueue started');
       const run = await start(answerQuestion, [text, history]);
       console.info('Alice workflow enqueue completed');
