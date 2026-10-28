@@ -6,6 +6,6 @@ export async function POST(request) {
   const headers = {};
   let status = 200, output;
   const res = { setHeader(k, v) { headers[k] = v; }, status(n) { status = n; return this; }, json(value) { output = value; } };
-  await diagnostics({ method: 'POST', body, headers: { authorization: request.headers.get('authorization') } }, res);
+  await diagnostics({ method: 'POST', body, oidcHeaderPresent: request.headers.has('x-vercel-oidc-token'), headers: { authorization: request.headers.get('authorization') } }, res);
   return Response.json(output, { status, headers });
 }
