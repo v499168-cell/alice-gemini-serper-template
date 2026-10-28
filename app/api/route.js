@@ -27,8 +27,8 @@ export async function POST(request) {
       return run.runId;
     },
     readTask,
-    // Reserve 1.3s of Alice's 4.5s limit for network delivery and scheduling.
-    waitTask: id => waitForReady(readTask, id, began + 3200)
+    // Reserve 1.1s of Alice's 4.5s limit for network delivery and scheduling.
+    waitTask: id => waitForReady(readTask, id, began + 3400)
   });
   const result = await handle(body);
   return Response.json(result.body, { status: result.status, headers: { 'Cache-Control': 'no-store', 'X-Alice-Elapsed-Ms': String(Date.now() - began) } });

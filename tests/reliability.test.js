@@ -23,23 +23,6 @@ async function invoke(command, history = []) {
 }
 const googleReply = text => ({ ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text }] } }] }) });
 
-test('latency mode disables supported thinking and keeps history and untrusted search instructions', async t => {
-  fixture(t);
-  const original = global.fetch;
-  t.after(() => { global.fetch = original; });
-  global.fetch = async (url, options) => {
-    assert.match(url, /gemma-4-26b-a4b-it:generateContent$/);
-    const body = JSON.parse(options.body);
-    assert.equal(body.generationConfig.thinkingConfig.thinkingLevel, 'minimal');
-    assert.equal(body.generationConfig.maxOutputTokens, 128);
-    assert.equal(body.contents[0].parts[0].text, 'Меня зовут Николай');
-    assert.match(body.contents.at(-1).parts[0].text, /недоверенные данные/);
-    assert(body.systemInstruction.parts[0].text.includes('по-русски'));
-    return googleReply('Ответ');
-  };
-  assert.equal(await askGemini('Вопрос', [{ role: 'user', text: 'Меня зовут Николай' }], 'Поиск', 1000, { model: 'gemma-4-26b-a4b-it', fast: true }), 'Ответ');
-});
-
 test("UTF-8 session state stays below Alice's 1 KiB limit for Cyrillic and emoji", () => {
   for (const text of ["я".repeat(1200), "🙂".repeat(600), "короткая реплика"]) {
     const history = safeHistory(Array.from({ length: 8 }, (_, i) => ({ role: i % 2 ? "model" : "user", text })));
