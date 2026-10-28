@@ -110,3 +110,31 @@ test('fast path observes completion after pending and running states', async () 
   assert.equal(result.result.text, 'Ответ');
   assert.equal(reads, 3);
 });
+
+test('direct prepared answer is delivered without waiting for workflow execution and is checkpointed once', async () => {
+  const starts = [];
+  let waits = 0;
+  const handle = createConversation({ secret,
+    prepareAnswer: async () => 'Готовый прямой ответ.',
+    startTask: async (...args) => { starts.push(args); return 'checkpoint-run'; },
+    readTask: async () => ({ status: 'running' }),
+    waitTask: async () => { waits++; throw Error('Must not wait'); }
+  });
+  const result = await handle(request('Вопрос'));
+  assert.equal(result.body.response.text, 'Готовый прямой ответ.');
+  assert.equal(result.body.session_state.delivered, true);
+  assert.deepEqual(starts, [['Вопрос', [], 'Готовый прямой ответ.']]);
+  assert.equal(waits, 0);
+});
+
+test('direct timeout creates a normal durable task instead of dropping the question', async () => {
+  const starts = [];
+  const handle = createConversation({ secret, prepareAnswer: async () => { throw Error('timeout'); },
+    startTask: async (...args) => { starts.push(args); return 'fallback-run'; },
+    readTask: async () => ({ status: 'running' })
+  });
+  const result = await handle(request('Медленный вопрос'));
+  assert.deepEqual(starts, [['Медленный вопрос', []]]);
+  assert.equal(result.body.session_state.runId, 'fallback-run');
+  assert.equal(result.body.session_state.delivered, false);
+});

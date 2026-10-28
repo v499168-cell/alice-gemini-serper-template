@@ -2,9 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../cloudflare/fast-answer.js';
 import { askFast } from '../lib/fast-provider.js';
+import { answerQuestion } from '../workflows/answer.js';
 
 const secret = 'private-test-key-'.repeat(4);
 const url = 'https://test.workers.dev/generate';
+test('a prepared answer checkpoint makes no second search or model request', async t => {
+  const original = global.fetch;
+  t.after(() => { global.fetch = original; });
+  global.fetch = async () => { throw Error('No network allowed for checkpoint'); };
+  const result = await answerQuestion('Найди данные', [], 'Готовый ответ.');
+  assert.equal(result.text, 'Готовый ответ.');
+  assert.deepEqual(result.history, [{ role: 'user', text: 'Найди данные' }, { role: 'model', text: 'Готовый ответ.' }]);
+});
 test('inference bridge rejects unauthorized and malformed requests without calling the model', async () => {
   let calls = 0;
   const env = { ACCESS_TOKEN: secret, AI: { run: async () => { calls++; } } };
